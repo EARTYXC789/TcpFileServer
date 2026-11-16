@@ -15,7 +15,8 @@ TcpFileServer::TcpFileServer(QWidget *parent)
 
     buttonBox = new QDialogButtonBox;
     buttonBox->addButton(startButton, QDialogButtonBox::ActionRole);
-    buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole);
+    buttonBox->addButton(quitButton, QDialogButtonBox::RejectRole); //哈哈
+
 
     QVBoxLayout* mainLayout = new QVBoxLayout;
     mainLayout->addWidget(serverProgressBar);
