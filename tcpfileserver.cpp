@@ -40,18 +40,56 @@ void TcpFileServer::start() {
     byteRecived = 0;
     fileNameSize = 0;
 
-    while (!tcpServer.isListening() && !tcpServer.listen(QHostAddress::AnyIPv4, 16998));
+    while (!tcpServer.isListening() && !tcpServer.listen(QHostAddress::AnyIPv4, 16998)) {
+        QMessageBox::StandardButton ret = QMessageBox::critical(this,
+                                                                tr("迴圈"),
+                                                                tr("無法啟動伺服器： %1.").arg(tcpServer.errorString()),
+                                                                QMessageBox::Retry | QMessageBox::Cancel);
+        if (ret == QMessageBox::Cancel) {return;}
+    }
+
+
     serverStatusLabel->setText("監聽中....");
 
 }
 
 void TcpFileServer::acceptConnection() {
+    tcpServerConnection = tcpServer.nextPendingConnection();
+    connect(tcpServerConnection, SIGNAL(readyRead()), this, SLOT(updateServerProgress()));
+    connect(tcpServerConnection, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(displayError(QAbstractSocket::SocketError)));
 
-
+    serverStatusLabel->setText(tr("接受連線"));
+    tcpServer.close();
 }
 
 void TcpFileServer::updateServerProgress() {
 
+    QDataStream in(tcpServerConnection);
+    in.setVersion(QDataStream::Qt_4_6);
+
+    if (byteRecived <= sizeof(qint64) * 2) {
+
+        if ((fileNameSize == 0) && (tcpServerConnection->bytesAvailable() >= sizeof(qint64) * 2)) {
+            in >> totalBytes >> fileNameSize;
+            byteRecived += sizeof(qint64) * 2;
+        }
+
+        if ((fileNameSize == 0) && (tcpServerConnection->bytesAvailable() >= fileNameSize)) {
+            in >> fileName;
+            byteRecived += fileNameSize;
+            localFile = new QFile(fileName);
+
+            if (!localFile->open(QFile::WriteOnly)) {
+                QMessageBox::warning(this, tr("應用程式"),
+                                     tr("無法讀取檔案 %1： \b%2").arg(fileName)
+                                     .arg(localFile->errorString()));
+                return;
+            }
+
+        } else {
+            return;
+        }
+    }
 
 }
 
